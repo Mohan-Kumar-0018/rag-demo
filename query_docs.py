@@ -209,8 +209,7 @@ def process_query(query: str, vector_store: Chroma, llm: OllamaAPI, top_k: int =
     for i, doc in enumerate(docs):
         logger.debug(f"\n----- DOCUMENT {i+1} -----")
         logger.debug(f"Source: {doc.metadata.get('source', 'Unknown')}")
-        logger.debug(f"Content:\n{doc.page_content[:300]}{'...' if len(doc.page_content) > 300 else ''}")
-        
+
         # Log more detailed info at debug level
         logger.debug(f"Document {i+1} Full Content:\n{doc.page_content}")
         logger.debug(f"Document {i+1} Metadata:\n{doc.metadata}")

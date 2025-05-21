@@ -54,7 +54,7 @@ def load_documents(source_dir: str) -> List:
     Returns:
         List of loaded documents
     """
-    logging.info(f"Loading documents from {source_dir}")
+    logger.info(f"Loading documents from {source_dir}")
     
     # Load all documents, combining results from different document types
     all_documents = []
@@ -67,7 +67,7 @@ def load_documents(source_dir: str) -> List:
         show_progress=True
     )
     pdf_documents = pdf_loader.load()
-    logging.info(f"Loaded {len(pdf_documents)} PDF documents")
+    logger.info(f"Loaded {len(pdf_documents)} PDF documents")
     all_documents.extend(pdf_documents)
     
     # Process text files
@@ -78,10 +78,10 @@ def load_documents(source_dir: str) -> List:
         show_progress=True
     )
     txt_documents = txt_loader.load()
-    logging.info(f"Loaded {len(txt_documents)} text documents")
+    logger.info(f"Loaded {len(txt_documents)} text documents")
     all_documents.extend(txt_documents)
     
-    logging.info(f"Loaded {len(all_documents)} total documents")
+    logger.info(f"Loaded {len(all_documents)} total documents")
     return all_documents
 
 # Function to split documents into chunks
@@ -97,7 +97,7 @@ def split_documents(documents: List, chunk_size: int = 1000, chunk_overlap: int 
     Returns:
         List of document chunks
     """
-    logging.info(f"Splitting {len(documents)} documents into chunks")
+    logger.info(f"Splitting {len(documents)} documents into chunks")
     
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,

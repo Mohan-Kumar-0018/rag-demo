@@ -78,4 +78,3 @@ Commands:
 
 Sample queries:
 
-How to submit material info changes on medical conditions?

@@ -107,7 +107,14 @@ def split_documents(documents: List, chunk_size: int = 1000, chunk_overlap: int 
     )
     
     chunks = text_splitter.split_documents(documents)
-    logging.debug(f"Split into {len(chunks)} chunks")
+    logger.info(f"Split into {len(chunks)} chunks")
+    
+    # Log chunk details at debug level
+    for i, chunk in enumerate(chunks):
+        logger.debug(f"\n----- CHUNK {i+1}/{len(chunks)} -----")
+        logger.debug(f"Source: {chunk.metadata.get('source', 'Unknown')}")
+        logger.debug(f"Content:\n{chunk.page_content[:300]}{'...' if len(chunk.page_content) > 300 else ''}")
+    
     return chunks
 
 # Function to create embeddings and store in Chroma DB
@@ -122,7 +129,10 @@ def create_vector_store(chunks: List, db_dir: str):
     Returns:
         Chroma vector store instance
     """
-    logging.info(f"Creating vector store in {db_dir}")
+    logger.info(f"Creating vector store in {db_dir}")
+    
+    # Log the number of chunks being embedded
+    logger.debug(f"Preparing to embed {len(chunks)} chunks")
     
     # Create directory if it doesn't exist
     os.makedirs(db_dir, exist_ok=True)

@@ -1,15 +1,38 @@
 import os
 import sys
-from typing import List
+from typing import List, Dict, Any, Union
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import DirectoryLoader, TextLoader
+from langchain_community.document_loaders import DirectoryLoader, TextLoader, PyPDFLoader
+from langchain_community.document_loaders.helpers import detect_file_encodings
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 
 # Define paths
 SOURCE_DOCUMENTS_DIR = os.path.join(os.path.dirname(__file__), "source_documents")
 DB_DIR = os.path.join(os.path.dirname(__file__), "db")
+
+# Function to get the appropriate document loader based on file extension
+def get_loader_class(file_path: str):
+    """
+    Determine the appropriate document loader based on file extension
+    
+    Args:
+        file_path: Path to the file
+        
+    Returns:
+        Appropriate loader class for the file type
+    """
+    _, file_extension = os.path.splitext(file_path.lower())
+    
+    if file_extension == '.pdf':
+        return PyPDFLoader
+    elif file_extension == '.txt':
+        return TextLoader
+    else:
+        # Default to TextLoader for unknown types
+        print(f"Warning: Unknown file extension '{file_extension}'. Defaulting to TextLoader.")
+        return TextLoader
 
 # Function to load documents from a directory
 def load_documents(source_dir: str) -> List:
@@ -24,17 +47,33 @@ def load_documents(source_dir: str) -> List:
     """
     print(f"Loading documents from {source_dir}")
     
-    # Create a loader for text files
-    loader = DirectoryLoader(
+    # Load all documents, combining results from different document types
+    all_documents = []
+    
+    # Process PDF files
+    pdf_loader = DirectoryLoader(
         source_dir,
-        glob="**/*.txt",  # Load all .txt files
+        glob="**/*.pdf",
+        loader_cls=PyPDFLoader,
+        show_progress=True
+    )
+    pdf_documents = pdf_loader.load()
+    print(f"Loaded {len(pdf_documents)} PDF documents")
+    all_documents.extend(pdf_documents)
+    
+    # Process text files
+    txt_loader = DirectoryLoader(
+        source_dir,
+        glob="**/*.txt",
         loader_cls=TextLoader,
         show_progress=True
     )
+    txt_documents = txt_loader.load()
+    print(f"Loaded {len(txt_documents)} text documents")
+    all_documents.extend(txt_documents)
     
-    documents = loader.load()
-    print(f"Loaded {len(documents)} documents")
-    return documents
+    print(f"Loaded {len(all_documents)} total documents")
+    return all_documents
 
 # Function to split documents into chunks
 def split_documents(documents: List, chunk_size: int = 1000, chunk_overlap: int = 200) -> List:

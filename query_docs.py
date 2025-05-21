@@ -3,7 +3,11 @@ import sys
 import argparse
 import json
 import requests
+import logging
 from typing import List, Dict, Any
+
+# Global flag for showing prompts
+SHOW_PROMPT = False
 
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
@@ -11,6 +15,16 @@ from langchain.prompts import PromptTemplate
 
 # Define paths
 DB_DIR = os.path.join(os.path.dirname(__file__), "db")
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger("rag_demo")
 
 # Initialize the HuggingFace embeddings - same as in load_docs.py
 def get_embeddings():
@@ -54,12 +68,12 @@ class OllamaAPI:
     """
     A class to interact with Ollama API for model inference
     """
-    def __init__(self, model_name="llama3:latest", api_base="http://localhost:11434"):
+    def __init__(self, model_name="llama3.2:latest", api_base="http://localhost:11434"):
         """
         Initialize the Ollama API client
         
         Args:
-            model_name: Name of the model in Ollama (default: llama3:latest)
+            model_name: Name of the model in Ollama (default: llama3.2:latest)
             api_base: Base URL for the Ollama API
         """
         self.model_name = model_name
@@ -145,7 +159,7 @@ def get_llm():
         OllamaAPI: Initialized Ollama API client
     """
     # Get model name from environment variable or use default
-    model_name = os.environ.get("OLLAMA_MODEL", "llama3:latest")
+    model_name = os.environ.get("OLLAMA_MODEL", "llama3.2:latest")
     
     print(f"Initializing Ollama API client for model: {model_name}")
     return OllamaAPI(model_name=model_name)
@@ -193,6 +207,17 @@ def process_query(query: str, vector_store: Chroma, llm: OllamaAPI, top_k: int =
     # Retrieve relevant documents
     docs = vector_store.similarity_search(query, k=top_k)
     
+    # Log each retrieved document
+    print(f"\nRetrieved {len(docs)} documents:")
+    for i, doc in enumerate(docs):
+        print(f"\n----- DOCUMENT {i+1} -----")
+        print(f"Source: {doc.metadata.get('source', 'Unknown')}")
+        print(f"Content:\n{doc.page_content[:300]}{'...' if len(doc.page_content) > 300 else ''}")
+        
+        # Log more detailed info at debug level
+        logger.debug(f"Document {i+1} Full Content:\n{doc.page_content}")
+        logger.debug(f"Document {i+1} Metadata:\n{doc.metadata}")
+    
     # Prepare context from retrieved documents
     context_text = "\n\n".join([doc.page_content for doc in docs])
     
@@ -201,6 +226,18 @@ def process_query(query: str, vector_store: Chroma, llm: OllamaAPI, top_k: int =
     
     # Format the prompt with the retrieved context and user query
     formatted_prompt = prompt_template.format(context=context_text, query=query)
+    
+    # Log the formatted prompt if enabled
+    global SHOW_PROMPT
+    if 'SHOW_PROMPT' in globals() and SHOW_PROMPT:
+        print("\n" + "="*80)
+        print("PROMPT SENT TO LLM:")
+        print("="*80)
+        print(formatted_prompt)
+        print("="*80 + "\n")
+    
+    # Always log to debug level for file logging
+    logger.debug(f"Prompt sent to LLM:\n{formatted_prompt}")
     
     # Generate response using LLM
     response = llm.generate(formatted_prompt)
@@ -227,9 +264,21 @@ def main():
     parser = argparse.ArgumentParser(description="Query documents using RAG with Ollama")
     parser.add_argument("--query", type=str, help="Query to process")
     parser.add_argument("--top_k", type=int, default=4, help="Number of documents to retrieve")
-    parser.add_argument("--model", type=str, help="Ollama model name (default: llama3:latest or from OLLAMA_MODEL env var)")
+    parser.add_argument("--model", type=str, help="Ollama model name (default: llama3.2:latest or from OLLAMA_MODEL env var)")
     parser.add_argument("--temperature", type=float, default=0.7, help="Sampling temperature (0.0 to 1.0)")
+    parser.add_argument("--show-prompt", action="store_true", help="Show the full prompt sent to the LLM")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
     args = parser.parse_args()
+    
+    # Configure logging based on verbosity
+    if args.verbose:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
+        
+    # Set global flag for prompt display
+    global SHOW_PROMPT
+    SHOW_PROMPT = args.show_prompt
     
     # Set model if provided as argument
     if args.model:

@@ -50,53 +50,65 @@ def load_vector_store(db_dir: str):
     return vector_store
 
 # Class for interacting with Ollama API
-class OllamaLLM:
+class OllamaAPI:
     """
     A class to interact with Ollama API for model inference
     """
-    def __init__(self, model_name="llama3.2:latest", api_base="http://localhost:11434"):
+    def __init__(self, model_name="llama3:latest", api_base="http://localhost:11434"):
         """
-        Initialize the Ollama LLM client
+        Initialize the Ollama API client
         
         Args:
-            model_name: Name of the model in Ollama (e.g., 'llama3')
+            model_name: Name of the model in Ollama (default: llama3:latest)
             api_base: Base URL for the Ollama API
         """
         self.model_name = model_name
         self.api_base = api_base
-        self.api_url = f"{api_base}/api/generate"
+        self.generate_url = f"{api_base}/api/generate"
+        self.models_url = f"{api_base}/api/tags"
         
-        # Check if Ollama is running
+        # Check if Ollama is running and if the model exists
+        self._check_ollama_status()
+        
+    def _check_ollama_status(self):
+        """
+        Check if Ollama is running and if the requested model exists
+        """
         try:
-            response = requests.get(f"{api_base}/api/tags")
+            response = requests.get(self.models_url)
             if response.status_code == 200:
-                available_models = [model["name"] for model in response.json()["models"]]
-                print(f"Available models in Ollama: {', '.join(available_models)}")
-                
-                # Check if our model exists
-                if not any(model_name.split(":")[0] in model for model in available_models):
-                    print(f"Warning: Model '{model_name}' not found in available models.")
-                    print(f"You may need to pull it first with: ollama pull {model_name}")
+                models_data = response.json()
+                if "models" in models_data:
+                    available_models = [model["name"] for model in models_data["models"]]
+                    model_base_name = self.model_name.split(":")[0]
+                    
+                    print(f"Available models in Ollama: {', '.join(available_models)}")
+                    
+                    if not any(model_base_name in model for model in available_models):
+                        print(f"Warning: Model '{self.model_name}' not found in available models.")
+                        print(f"You may need to pull it with: ollama pull {self.model_name}")
+                else:
+                    print("No models found in Ollama.")
             else:
-                print(f"Warning: Couldn't fetch model list from Ollama (status code: {response.status_code})")
+                print(f"Warning: Couldn't fetch model list. Status code: {response.status_code}")
         except requests.RequestException as e:
-            print(f"Warning: Couldn't connect to Ollama at {api_base}: {e}")
+            print(f"Warning: Couldn't connect to Ollama at {self.api_base}: {e}")
             print("Please ensure Ollama is running.")
     
-    def __call__(self, prompt, max_tokens=1024, temperature=0.7, top_p=0.9, repeat_penalty=1.1, echo=False):
+    def generate(self, prompt: str, max_tokens: int = 1024, temperature: float = 0.7, 
+                top_p: float = 0.9, repeat_penalty: float = 1.1) -> Dict[str, Any]:
         """
-        Call the Ollama API to generate a response
+        Generate text using the Ollama API
         
         Args:
-            prompt: The input prompt
-            max_tokens: Maximum tokens to generate
-            temperature: Sampling temperature
+            prompt: Input prompt
+            max_tokens: Maximum number of tokens to generate
+            temperature: Sampling temperature (higher = more creative/random)
             top_p: Top-p sampling parameter
             repeat_penalty: Penalty for repeating tokens
-            echo: Whether to echo the prompt in the response
-            
+        
         Returns:
-            dict: Response containing generated text and metadata
+            Dict: Response containing generated text
         """
         try:
             payload = {
@@ -111,48 +123,32 @@ class OllamaLLM:
                 }
             }
             
-            response = requests.post(self.api_url, json=payload)
+            print(f"Generating response using Ollama model: {self.model_name}")
+            response = requests.post(self.generate_url, json=payload)
             
             if response.status_code == 200:
-                result = response.json()
-                # Format the response similar to what llama-cpp-python returns
-                return {
-                    "choices": [
-                        {
-                            "text": result["response"],
-                            "finish_reason": "stop"
-                        }
-                    ],
-                    "usage": {
-                        "prompt_tokens": result.get("prompt_eval_count", 0),
-                        "completion_tokens": result.get("eval_count", 0),
-                        "total_tokens": result.get("prompt_eval_count", 0) + result.get("eval_count", 0)
-                    }
-                }
+                return response.json()
             else:
-                print(f"Error from Ollama API: {response.status_code}")
-                print(response.text)
-                return {"choices": [{"text": "Error generating response from Ollama.", "finish_reason": "error"}]}
-                
+                print(f"Error from Ollama API: {response.status_code}, {response.text}")
+                return {"response": f"Error: API returned status code {response.status_code}"}
+        
         except Exception as e:
             print(f"Error calling Ollama API: {e}")
-            return {"choices": [{"text": f"Error: {str(e)}", "finish_reason": "error"}]}
+            return {"response": f"Error: {str(e)}"}
 
-# Initialize the Ollama LLM client
+# Get the LLM using Ollama
 def get_llm():
     """
-    Initialize the Ollama client for Llama 3.2 model
+    Initialize Ollama API client for the Llama model
     
     Returns:
-        OllamaLLM: Initialized Ollama client instance
+        OllamaAPI: Initialized Ollama API client
     """
     # Get model name from environment variable or use default
-    model_name = os.environ.get("OLLAMA_MODEL", "llama3.2:latest")
+    model_name = os.environ.get("OLLAMA_MODEL", "llama3:latest")
     
-    print(f"Using Ollama model: {model_name}")
-    
-    # Create and return the Ollama client
-    return OllamaLLM(model_name=model_name)
+    print(f"Initializing Ollama API client for model: {model_name}")
+    return OllamaAPI(model_name=model_name)
 
 # Build RAG prompt template
 def get_rag_prompt():
@@ -160,7 +156,7 @@ def get_rag_prompt():
     Create a prompt template for RAG
     
     Returns:
-        PromptTemplate: The prompt template for RAG
+        str: The prompt template for RAG
     """
     template = """
 You are an assistant that answers questions based on the provided context.
@@ -176,17 +172,17 @@ If the context doesn't contain information to answer the question, say so rather
 Answer:
 """
     
-    return PromptTemplate.from_template(template)
+    return template
 
 # Process query using RAG
-def process_query(query: str, vector_store: Chroma, llm, top_k: int = 4):
+def process_query(query: str, vector_store: Chroma, llm: OllamaAPI, top_k: int = 4):
     """
     Process a query using RAG
     
     Args:
         query: User query
         vector_store: Vector store for document retrieval
-        llm: LLM for generating responses
+        llm: Ollama API client for generating responses
         top_k: Number of documents to retrieve
     
     Returns:
@@ -201,31 +197,18 @@ def process_query(query: str, vector_store: Chroma, llm, top_k: int = 4):
     context_text = "\n\n".join([doc.page_content for doc in docs])
     
     # Get the prompt template
-    prompt = get_rag_prompt()
-    
-    print(f"Formatted prompt...{prompt.template}")
-    print(f"Retrieved {len(docs)} documents for context")
-    print(f"Context: {context_text[:100]}...")  # Print first 100 characters of context
-    print(f"Query: {query}")
+    prompt_template = get_rag_prompt()
     
     # Format the prompt with the retrieved context and user query
-    formatted_prompt = prompt.format(context=context_text, query=query)
-    
-    print("Generating response using LLM...")
+    formatted_prompt = prompt_template.format(context=context_text, query=query)
     
     # Generate response using LLM
-    response = llm(
-        formatted_prompt,
-        max_tokens=1024,
-        temperature=0.5,
-        top_p=0.9,
-        repeat_penalty=1.1,
-        echo=False
-    )
+    response = llm.generate(formatted_prompt)
     
     # Extract the generated text
-    answer = response["choices"][0]["text"].strip()
+    answer = response.get("response", "Error: No response generated")
     
+    # Prepare the result
     result = {
         "query": query,
         "answer": answer,
@@ -241,10 +224,16 @@ def process_query(query: str, vector_store: Chroma, llm, top_k: int = 4):
 
 def main():
     # Parse command line arguments
-    parser = argparse.ArgumentParser(description="Query documents using RAG")
+    parser = argparse.ArgumentParser(description="Query documents using RAG with Ollama")
     parser.add_argument("--query", type=str, help="Query to process")
     parser.add_argument("--top_k", type=int, default=4, help="Number of documents to retrieve")
+    parser.add_argument("--model", type=str, help="Ollama model name (default: llama3:latest or from OLLAMA_MODEL env var)")
+    parser.add_argument("--temperature", type=float, default=0.7, help="Sampling temperature (0.0 to 1.0)")
     args = parser.parse_args()
+    
+    # Set model if provided as argument
+    if args.model:
+        os.environ["OLLAMA_MODEL"] = args.model
     
     # Get query from command line or prompt
     query = args.query

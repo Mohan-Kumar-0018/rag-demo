@@ -2,17 +2,8 @@
 2. create directory db
 3. create file load_docs.py and requirements.txt
 
-Prompt 1:
-Add python code in load_docs.py for loading the documents from the file directory.
-1. Use langchain_community.document_loaders for DirectoryLoader, TextLoader
-2. For Embedding use HuggingFaceEmbeddings from langchain_huggingface 0.0.3
-3. Use RecursiveCharacterTextSplitter from langchain.text_splitter
-4. Use Chroma DB to store the embeddings from langchain_chroma 
-5. add necessary packages in requirements.txt
-7. use source_documents folder for loading the documents
-8. use db folder for storing the embeddings
 
-Prompt 2:
+Prompt :
 
 1. Add Python code in load_docs.py for loading the documents from the file directory.
 2. Use DirectoryLoader and TextLoader from langchain_community.document_loaders (langchain_community==0.0.36).
@@ -50,9 +41,12 @@ python load_docs.py
 add relevant gitignore files
 
 Create file query_docs.py
-Convert input query into same embeddings used in load_docs.py 
-Retrive results from chroma DB
-use local model llama3.2:latest
-add relevent packages to requirements.txt
+
+Prompt :
+1. Add Python code in query_docs.py for query processing using RAG.
+2. Convert input query into same embeddings used in load_docs.py using HuggingFaceEmbeddings.
+3. Retrieve relevant documents from chroma DB using Chroma.
+4. Ollama is installed and running. Use local model llama3.2:latest. Make requests to Ollama API.
+5. Add relevant packages to requirements.txt
 
 

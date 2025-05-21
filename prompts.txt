@@ -49,11 +49,10 @@ python load_docs.py
 
 add relevant gitignore files
 
-
-
 Create file query_docs.py
 Convert input query into same embeddings used in load_docs.py 
 Retrive results from chroma DB
 use local model llama3.2:latest
+add relevent packages to requirements.txt
 
 

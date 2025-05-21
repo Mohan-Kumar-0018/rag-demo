@@ -11,4 +11,4 @@ protobuf==4.24.4
 pydantic==2.6.4
 python-dotenv==1.0.1
 tqdm==4.66.1
-llama-cpp-python==0.2.50
+requests==2.31.0

@@ -12,7 +12,7 @@ pydantic>=2.0.0,<3.0.0
 python-dotenv==1.0.1
 tqdm==4.66.1
 requests==2.32.3
-pypdf2==3.0.1
+pypdf>=3.0.0
 python-magic==0.4.27
 docling==2.15.0
 tokenizers==0.19.1

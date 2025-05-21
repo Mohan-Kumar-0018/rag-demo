@@ -67,3 +67,15 @@ refer load_docs.py and write code in query_docling_docs.py.
 3. Retrieve relevant documents from chroma DB using Chroma. use db2.
 4. Ollama is installed and running. Use local model llama3.2:latest. Make requests to Ollama API.
 5. Add relevant packages to requirements.txt
+
+
+Commands:
+1. python load_docs.py
+    --verbose
+2. python3 query_docs.py --query "your question here"
+    --verbose --model llama2 --top_k 5 
+
+
+Sample queries:
+
+How to submit material info changes on medical conditions?

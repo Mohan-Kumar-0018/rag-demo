@@ -6,9 +6,6 @@ import requests
 import logging
 from typing import List, Dict, Any
 
-# Global flag for showing prompts
-SHOW_PROMPT = False
-
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from langchain.prompts import PromptTemplate
@@ -50,7 +47,7 @@ def load_vector_store(db_dir: str):
     Returns:
         Chroma: Loaded vector store instance
     """
-    print(f"Loading vector store from {db_dir}")
+    logger.debug(f"Loading vector store from {db_dir}")
     
     embedding_model = get_embeddings()
     
@@ -60,7 +57,7 @@ def load_vector_store(db_dir: str):
         embedding_function=embedding_model
     )
     
-    print(f"Vector store loaded successfully")
+    logger.debug(f"Vector store loaded successfully")
     return vector_store
 
 # Class for interacting with Ollama API
@@ -96,18 +93,18 @@ class OllamaAPI:
                     available_models = [model["name"] for model in models_data["models"]]
                     model_base_name = self.model_name.split(":")[0]
                     
-                    print(f"Available models in Ollama: {', '.join(available_models)}")
+                    logger.debug(f"Available models in Ollama: {', '.join(available_models)}")
                     
                     if not any(model_base_name in model for model in available_models):
-                        print(f"Warning: Model '{self.model_name}' not found in available models.")
-                        print(f"You may need to pull it with: ollama pull {self.model_name}")
+                        logger.warning(f"Model '{self.model_name}' not found in available models.")
+                        logger.warning(f"You may need to pull it with: ollama pull {self.model_name}")
                 else:
-                    print("No models found in Ollama.")
+                    logger.warning("No models found in Ollama.")
             else:
-                print(f"Warning: Couldn't fetch model list. Status code: {response.status_code}")
+                logger.warning(f"Couldn't fetch model list. Status code: {response.status_code}")
         except requests.RequestException as e:
-            print(f"Warning: Couldn't connect to Ollama at {self.api_base}: {e}")
-            print("Please ensure Ollama is running.")
+            logger.warning(f"Couldn't connect to Ollama at {self.api_base}: {e}")
+            logger.warning("Please ensure Ollama is running.")
     
     def generate(self, prompt: str, max_tokens: int = 1024, temperature: float = 0.7, 
                 top_p: float = 0.9, repeat_penalty: float = 1.1) -> Dict[str, Any]:
@@ -137,17 +134,17 @@ class OllamaAPI:
                 }
             }
             
-            print(f"Generating response using Ollama model: {self.model_name}")
+            logger.debug(f"Generating response using Ollama model: {self.model_name}")
             response = requests.post(self.generate_url, json=payload)
             
             if response.status_code == 200:
                 return response.json()
             else:
-                print(f"Error from Ollama API: {response.status_code}, {response.text}")
+                logger.error(f"Error from Ollama API: {response.status_code}, {response.text}")
                 return {"response": f"Error: API returned status code {response.status_code}"}
         
         except Exception as e:
-            print(f"Error calling Ollama API: {e}")
+            logger.error(f"Error calling Ollama API: {e}")
             return {"response": f"Error: {str(e)}"}
 
 # Get the LLM using Ollama
@@ -161,7 +158,7 @@ def get_llm():
     # Get model name from environment variable or use default
     model_name = os.environ.get("OLLAMA_MODEL", "llama3.2:latest")
     
-    print(f"Initializing Ollama API client for model: {model_name}")
+    logger.debug(f"Initializing Ollama API client for model: {model_name}")
     return OllamaAPI(model_name=model_name)
 
 # Build RAG prompt template
@@ -202,17 +199,17 @@ def process_query(query: str, vector_store: Chroma, llm: OllamaAPI, top_k: int =
     Returns:
         Dict[str, Any]: Query results including answer and retrieved documents
     """
-    print(f"Processing query: {query}")
+    logger.info(f"Processing query: {query}")
     
     # Retrieve relevant documents
     docs = vector_store.similarity_search(query, k=top_k)
     
     # Log each retrieved document
-    print(f"\nRetrieved {len(docs)} documents:")
+    logger.debug(f"Retrieved {len(docs)} documents:")
     for i, doc in enumerate(docs):
-        print(f"\n----- DOCUMENT {i+1} -----")
-        print(f"Source: {doc.metadata.get('source', 'Unknown')}")
-        print(f"Content:\n{doc.page_content[:300]}{'...' if len(doc.page_content) > 300 else ''}")
+        logger.debug(f"\n----- DOCUMENT {i+1} -----")
+        logger.debug(f"Source: {doc.metadata.get('source', 'Unknown')}")
+        logger.debug(f"Content:\n{doc.page_content[:300]}{'...' if len(doc.page_content) > 300 else ''}")
         
         # Log more detailed info at debug level
         logger.debug(f"Document {i+1} Full Content:\n{doc.page_content}")
@@ -226,15 +223,6 @@ def process_query(query: str, vector_store: Chroma, llm: OllamaAPI, top_k: int =
     
     # Format the prompt with the retrieved context and user query
     formatted_prompt = prompt_template.format(context=context_text, query=query)
-    
-    # Log the formatted prompt if enabled
-    global SHOW_PROMPT
-    if 'SHOW_PROMPT' in globals() and SHOW_PROMPT:
-        print("\n" + "="*80)
-        print("PROMPT SENT TO LLM:")
-        print("="*80)
-        print(formatted_prompt)
-        print("="*80 + "\n")
     
     # Always log to debug level for file logging
     logger.debug(f"Prompt sent to LLM:\n{formatted_prompt}")
@@ -266,7 +254,6 @@ def main():
     parser.add_argument("--top_k", type=int, default=4, help="Number of documents to retrieve")
     parser.add_argument("--model", type=str, help="Ollama model name (default: llama3.2:latest or from OLLAMA_MODEL env var)")
     parser.add_argument("--temperature", type=float, default=0.7, help="Sampling temperature (0.0 to 1.0)")
-    parser.add_argument("--show-prompt", action="store_true", help="Show the full prompt sent to the LLM")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
     args = parser.parse_args()
     
@@ -276,10 +263,6 @@ def main():
     else:
         logger.setLevel(logging.INFO)
         
-    # Set global flag for prompt display
-    global SHOW_PROMPT
-    SHOW_PROMPT = args.show_prompt
-    
     # Set model if provided as argument
     if args.model:
         os.environ["OLLAMA_MODEL"] = args.model
@@ -291,8 +274,8 @@ def main():
     
     # Check if the DB directory exists
     if not os.path.exists(DB_DIR):
-        print(f"Error: Vector database directory '{DB_DIR}' does not exist.")
-        print("Please run load_docs.py first to create the vector database.")
+        logger.error(f"Vector database directory '{DB_DIR}' does not exist.")
+        logger.error("Please run load_docs.py first to create the vector database.")
         sys.exit(1)
     
     # Load vector store
@@ -305,15 +288,15 @@ def main():
     result = process_query(query, vector_store, llm, top_k=args.top_k)
     
     # Print the answer
-    print("\nAnswer:")
-    print("-------")
-    print(result["answer"])
+    logger.info("\nAnswer:")
+    logger.info("-------")
+    logger.info(result["answer"])
     
     # Print the sources
-    print("\nSources:")
-    print("--------")
+    logger.debug("\nSources:")
+    logger.debug("--------")
     for i, doc in enumerate(result["documents"]):
-        print(f"Source {i+1}: {doc['metadata'].get('source', 'Unknown')}")
+        logger.debug(f"Source {i+1}: {doc['metadata'].get('source', 'Unknown')}")
 
 if __name__ == "__main__":
     main()

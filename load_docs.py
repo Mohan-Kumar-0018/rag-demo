@@ -1,6 +1,15 @@
 import os
 import sys
+import logging
+import argparse
 from typing import List, Dict, Any, Union
+
+# Set up logger
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import DirectoryLoader, TextLoader, PyPDFLoader
@@ -31,7 +40,7 @@ def get_loader_class(file_path: str):
         return TextLoader
     else:
         # Default to TextLoader for unknown types
-        print(f"Warning: Unknown file extension '{file_extension}'. Defaulting to TextLoader.")
+        logger.debug(f"Unknown file extension '{file_extension}'. Defaulting to TextLoader.")
         return TextLoader
 
 # Function to load documents from a directory
@@ -45,7 +54,7 @@ def load_documents(source_dir: str) -> List:
     Returns:
         List of loaded documents
     """
-    print(f"Loading documents from {source_dir}")
+    logging.info(f"Loading documents from {source_dir}")
     
     # Load all documents, combining results from different document types
     all_documents = []
@@ -58,7 +67,7 @@ def load_documents(source_dir: str) -> List:
         show_progress=True
     )
     pdf_documents = pdf_loader.load()
-    print(f"Loaded {len(pdf_documents)} PDF documents")
+    logging.info(f"Loaded {len(pdf_documents)} PDF documents")
     all_documents.extend(pdf_documents)
     
     # Process text files
@@ -69,10 +78,10 @@ def load_documents(source_dir: str) -> List:
         show_progress=True
     )
     txt_documents = txt_loader.load()
-    print(f"Loaded {len(txt_documents)} text documents")
+    logging.info(f"Loaded {len(txt_documents)} text documents")
     all_documents.extend(txt_documents)
     
-    print(f"Loaded {len(all_documents)} total documents")
+    logging.info(f"Loaded {len(all_documents)} total documents")
     return all_documents
 
 # Function to split documents into chunks
@@ -88,7 +97,7 @@ def split_documents(documents: List, chunk_size: int = 1000, chunk_overlap: int 
     Returns:
         List of document chunks
     """
-    print(f"Splitting {len(documents)} documents into chunks")
+    logging.info(f"Splitting {len(documents)} documents into chunks")
     
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
@@ -98,7 +107,7 @@ def split_documents(documents: List, chunk_size: int = 1000, chunk_overlap: int 
     )
     
     chunks = text_splitter.split_documents(documents)
-    print(f"Split into {len(chunks)} chunks")
+    logging.debug(f"Split into {len(chunks)} chunks")
     return chunks
 
 # Function to create embeddings and store in Chroma DB
@@ -113,7 +122,7 @@ def create_vector_store(chunks: List, db_dir: str):
     Returns:
         Chroma vector store instance
     """
-    print(f"Creating vector store in {db_dir}")
+    logging.info(f"Creating vector store in {db_dir}")
     
     # Create directory if it doesn't exist
     os.makedirs(db_dir, exist_ok=True)
@@ -131,26 +140,39 @@ def create_vector_store(chunks: List, db_dir: str):
         persist_directory=db_dir
     )
     
-    print(f"Vector store created successfully")
+    logging.info(f"Vector store created successfully")
     return vector_store
 
 # Main function to run the document loading process
 def main():
-    # Check if the source directory exists
-    if not os.path.exists(SOURCE_DOCUMENTS_DIR):
-        print(f"Error: Source directory '{SOURCE_DOCUMENTS_DIR}' does not exist.")
-        sys.exit(1)
+    """Main function to run the document loading process"""
+    parser = argparse.ArgumentParser(description='Load and process documents for RAG')
+    parser.add_argument('--verbose', action='store_true',
+                      help='Enable verbose debug output')
+    args = parser.parse_args()
+    
+    # Set logging level based on verbose flag
+    if args.verbose:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
+    
+    try:
+        # Load documents from source directory
+        documents = load_documents(SOURCE_DOCUMENTS_DIR)
+        logger.info(f"Loaded {len(documents)} documents from {SOURCE_DOCUMENTS_DIR}")
         
-    # Load documents
-    documents = load_documents(SOURCE_DOCUMENTS_DIR)
-    
-    # Split documents into chunks
-    chunks = split_documents(documents)
-    
-    # Create vector store
-    vector_store = create_vector_store(chunks, DB_DIR)
-    
-    print("Document loading and processing complete")
+        # Split documents into chunks
+        chunks = split_documents(documents)
+        logger.info(f"Split documents into {len(chunks)} chunks")
+        
+        # Create vector store
+        vector_store = create_vector_store(chunks, DB_DIR)
+        logger.info(f"Created vector store at {DB_DIR}")
+        
+    except Exception as e:
+        logger.error(f"Error processing documents: {str(e)}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

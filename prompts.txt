@@ -1,0 +1,59 @@
+1. create directory source_documents and add text files
+2. create directory db
+3. create file load_docs.py and requirements.txt
+
+Prompt 1:
+Add python code in load_docs.py for loading the documents from the file directory.
+1. Use langchain_community.document_loaders for DirectoryLoader, TextLoader
+2. For Embedding use HuggingFaceEmbeddings from langchain_huggingface 0.0.3
+3. Use RecursiveCharacterTextSplitter from langchain.text_splitter
+4. Use Chroma DB to store the embeddings from langchain_chroma 
+5. add necessary packages in requirements.txt
+7. use source_documents folder for loading the documents
+8. use db folder for storing the embeddings
+
+Prompt 2:
+
+1. Add Python code in load_docs.py for loading the documents from the file directory.
+2. Use DirectoryLoader and TextLoader from langchain_community.document_loaders (langchain_community==0.0.36).
+3. For embeddings, use HuggingFaceEmbeddings from langchain_huggingface==0.0.3.
+4. Use RecursiveCharacterTextSplitter from langchain.text_splitter (langchain==0.1.17).
+5. Use Chroma from langchain_chroma==0.1.4 as the vector store.
+6. Store the loaded documents from the source_documents folder.
+7. Store the generated embeddings in the db folder.
+8. Add the following packages in requirements.txt to ensure compatibility:
+torch==2.2.2
+sentence-transformers==2.6.1
+transformers==4.41.2
+huggingface-hub==0.23.0
+langchain==0.1.17
+langchain_community==0.0.36
+langchain_huggingface==0.0.3
+langchain_chroma==0.1.4
+chromadb==0.4.24
+protobuf==4.24.4
+pydantic==2.6.4
+python-dotenv==1.0.1
+tqdm==4.66.1
+
+
+Create python virtual ENV:
+python -m venv venv
+
+Source:
+source venv/bin/activate
+
+pip install -r requirements.txt
+
+python load_docs.py
+
+add relevant gitignore files
+
+
+
+Create file query_docs.py
+Convert input query into same embeddings used in load_docs.py 
+Retrive results from chroma DB
+use local model llama3.2:latest
+
+

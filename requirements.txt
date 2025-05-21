@@ -1,0 +1,14 @@
+torch==2.2.2
+sentence-transformers==2.6.1
+transformers==4.41.2
+huggingface-hub==0.23.0
+langchain==0.1.17
+langchain_community==0.0.36
+langchain_huggingface==0.0.3
+langchain_chroma==0.1.4
+chromadb==0.4.24
+protobuf==4.24.4
+pydantic==2.6.4
+python-dotenv==1.0.1
+tqdm==4.66.1
+llama-cpp-python==0.2.50

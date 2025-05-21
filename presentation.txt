@@ -1,0 +1,38 @@
+Title: 
+  RAG (Retrieval Augmented Generation):
+
+LLM:
+  LLMs are powerful but they are static.
+  Once a model is trained, it can’t learn anything new.
+  No internet. No updates. They don’t “look up” information.
+
+
+How do we teach LLMs to answer context dependent questions?
+1. Prompt Engineering
+  Prompting is about shaping the model’s behaviour at inference time.
+  - Formatting answers
+  - Enforcing structure
+  - Steering tone and voice
+
+2. Fine-tuning
+  Fine-tuning is about modifying the model’s weights. 
+  You take a base model and train it further on new examples — either task-specific, domain-specific, or instruction-style.
+  Fine-tuning is best when your knowledge is stable and your tasks are narrow.
+
+RAG:
+  Making smarter inputs to LLM and making it contextually relevant.
+  RAG moves the complexity from training to retrieval.
+
+  - retrieve and inject the right context before the model answers  
+
+At its simplest, RAG (Retrieval-Augmented Generation) does three things:
+1. Retrieves - the most relevant data based on your question
+2. Augments - the LLM’s prompt with that data
+3. Generates - a grounded response using both the query and retrieved context
+
+
+Retrieval:
+  - Vector DB
+    - Embedding
+    - Search
+

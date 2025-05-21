@@ -37,6 +37,7 @@ ENV/
 
 # Project specific
 db/
+db2/
 *.log
 
 # Local configurations

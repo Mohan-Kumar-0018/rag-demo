@@ -50,3 +50,20 @@ Prompt :
 5. Add relevant packages to requirements.txt
 
 
+Load using Docling:
+1. Add python code in load_using_docling.py for loading the documents from the file directory.
+2. Use Docling to load the documents from the file directory. Have support for pdf and text files. - from docling.document_converter import DocumentConverter, PdfFormatOption
+3. For embeddings, use HuggingFaceEmbeddings from langchain_huggingface==0.0.3.
+4. Use RecursiveCharacterTextSplitter from langchain.text_splitter (langchain==0.1.17).
+5. Use Chroma from langchain_chroma==0.1.4 as the vector store.
+6. Store the loaded documents from the source_documents folder.
+7. Store the generated embeddings in the db2 folder.
+8. Add the docling in requirements.txt
+
+
+refer load_docs.py and write code in query_docling_docs.py. 
+1. Add Python code in query_docling_docs.py for query processing using RAG.
+2. Convert input query into same embeddings used in load_docs.py using HuggingFaceEmbeddings.
+3. Retrieve relevant documents from chroma DB using Chroma. use db2.
+4. Ollama is installed and running. Use local model llama3.2:latest. Make requests to Ollama API.
+5. Add relevant packages to requirements.txt

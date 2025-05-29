@@ -32,7 +32,12 @@ At its simplest, RAG (Retrieval-Augmented Generation) does three things:
 
 
 Retrieval:
-  - Vector DB
+    - Vector DB
+      - Chroma
+    - Document Loaders (langchain)
+    - Text Splitters (langchain)
     - Embedding
-    - Search
+      - Huggingface
+    - SimilaritySearch
+    
 

@@ -63,12 +63,12 @@ This will:
 After processing documents, you can query the system:
 
 ```bash
-python query_docs.py "Your question here?"
+python query_docs.py --query "Your question here?"
 ```
 
 Options:
 - `--verbose`: Enable verbose output
-- `--top-k N`: Number of documents to retrieve (default: 4)
+- `--top_k N`: Number of documents to retrieve (default: 4)
 
 This will:
 - Retrieve the most relevant document chunks based on your question
